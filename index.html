@@ -169,6 +169,7 @@
   <header>
     <div class="logo">FICHA<span>.</span>PRO</div>
     <div class="badge">500 h</div>
+    <div id="savedBadge" style="font-size:0.6rem;color:var(--success);opacity:0;transition:opacity 0.5s;letter-spacing:0.05em;">✓ guardado</div>
   </header>
 
   <div class="progress-section">
@@ -256,8 +257,23 @@ function loadData() {
   renderAll();
 }
 
-function saveState() { localStorage.setItem('state', JSON.stringify({activeStart, pausedAt, pausedAccum})); }
-function saveData() { localStorage.setItem('sessions', JSON.stringify(sessions)); }
+function saveState() {
+  try {
+    localStorage.setItem('state', JSON.stringify({activeStart, pausedAt, pausedAccum}));
+  } catch(e) { showToast('⚠ Error al guardar: ' + e.message); }
+}
+function saveData() {
+  try {
+    localStorage.setItem('sessions', JSON.stringify(sessions));
+    showSavedBadge();
+  } catch(e) { showToast('⚠ Error al guardar: ' + e.message); }
+}
+function showSavedBadge() {
+  const el = document.getElementById('savedBadge');
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.style.opacity = '0', 2000);
+}
 
 function toggleSession() {
   if (!activeStart) {
