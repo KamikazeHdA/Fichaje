@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fichaje Prácticas</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e10;
+    --surface: #17171a;
+    --surface2: #1f1f24;
+    --border: #2e2e35;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --pause-color: #facc15;
+    --text: #f0f0f0;
+    --muted: #7a7a8a;
+    --success: #4ade80;
+    --danger: #f87171;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height:100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events:none; z-index:0; opacity:0.4;
+  }
+  .app { position:relative; z-index:1; max-width:480px; margin:0 auto; padding:16px 14px; }
+
+  /* HEADER */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid var(--border);
+  }
+  .logo { font-family:'Syne',sans-serif; font-weight:800; font-size:1.2rem; letter-spacing:-0.02em; }
+  .logo span { color:var(--accent); }
+  .badge { background:var(--surface2); border:1px solid var(--border); padding:4px 10px; border-radius:20px; font-size:0.65rem; color:var(--muted); letter-spacing:0.05em; }
+
+  /* PROGRESS */
+  .progress-section {
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:18px; margin-bottom:12px;
+  }
+  .progress-header { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:12px; }
+  .hours-display { font-family:'Syne',sans-serif; font-size:2.4rem; font-weight:800; line-height:1; letter-spacing:-0.03em; }
+  .hours-display .remaining { color:var(--accent); }
+  .pct-badge { font-size:0.65rem; color:var(--muted); text-align:right; }
+  .pct-badge .pct-num { display:block; font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:700; color:var(--accent2); }
+  .progress-bar-wrap { background:var(--surface2); border-radius:4px; height:6px; overflow:hidden; }
+  .progress-bar-fill { height:100%; background:linear-gradient(90deg,var(--accent) 0%,var(--accent2) 100%); border-radius:4px; transition:width 1s ease; }
+  .sub-stats { display:flex; gap:16px; margin-top:14px; flex-wrap:wrap; }
+  .stat { font-size:0.65rem; color:var(--muted); }
+  .stat strong { display:block; color:var(--text); font-size:0.8rem; margin-bottom:2px; }
+
+  /* TIMER */
+  .timer-section {
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:22px 18px; margin-bottom:12px; text-align:center;
+  }
+  .status-row { display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:10px; }
+  .status-dot { width:8px; height:8px; border-radius:50%; background:var(--muted); flex-shrink:0; transition:background 0.3s; }
+  .status-dot.active { background:var(--success); box-shadow:0 0 0 4px rgba(74,222,128,0.2); animation:pulse 1.5s infinite; }
+  .status-dot.paused { background:var(--pause-color); box-shadow:0 0 0 4px rgba(250,204,21,0.2); }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 4px rgba(74,222,128,0.2)} 50%{box-shadow:0 0 0 8px rgba(74,222,128,0.05)} }
+  .status-label { font-size:0.65rem; letter-spacing:0.12em; color:var(--muted); text-transform:uppercase; }
+  .timer-display {
+    font-family:'Syne',sans-serif; font-size:4rem; font-weight:800;
+    letter-spacing:-0.04em; margin:4px 0 6px; line-height:1; transition:color 0.3s;
+  }
+  .timer-display.running { color:var(--accent); }
+  .timer-display.paused { color:var(--pause-color); }
+  .pause-accum { font-size:0.65rem; color:var(--muted); margin-bottom:16px; min-height:1.2em; }
+
+  /* BUTTONS */
+  .btn-row { display:flex; gap:10px; justify-content:center; }
+  .punch-btn {
+    flex:1; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:16px 10px; border-radius:10px; border:2px solid var(--accent);
+    background:transparent; color:var(--accent);
+    font-family:'Syne',sans-serif; font-size:0.85rem; font-weight:700;
+    letter-spacing:0.04em; cursor:pointer; transition:all 0.2s;
+    position:relative; overflow:hidden; -webkit-appearance:none;
+  }
+  .punch-btn::before { content:''; position:absolute; inset:0; background:var(--accent); transform:scaleX(0); transform-origin:left; transition:transform 0.2s; z-index:0; }
+  .punch-btn:active::before { transform:scaleX(1); }
+  .punch-btn:active { color:var(--bg); }
+  .punch-btn span, .punch-btn .icon { position:relative; z-index:1; }
+  .punch-btn.running { border-color:var(--danger); color:var(--danger); }
+  .punch-btn.running::before { background:var(--danger); }
+  .pause-btn {
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    padding:16px 14px; border-radius:10px; border:2px solid var(--pause-color);
+    background:transparent; color:var(--pause-color);
+    font-family:'Syne',sans-serif; font-size:0.85rem; font-weight:700;
+    cursor:pointer; transition:all 0.2s; -webkit-appearance:none;
+    position:relative; overflow:hidden;
+  }
+  .pause-btn::before { content:''; position:absolute; inset:0; background:var(--pause-color); transform:scaleX(0); transform-origin:left; transition:transform 0.2s; z-index:0; }
+  .pause-btn:active::before { transform:scaleX(1); }
+  .pause-btn:active { color:var(--bg); }
+  .pause-btn span { position:relative; z-index:1; }
+  .pause-btn.hidden { display:none; }
+
+  /* HISTORY */
+  .history-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .history-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); }
+  .history-title { font-family:'Syne',sans-serif; font-weight:700; font-size:0.85rem; letter-spacing:0.04em; }
+  .export-btn { background:none; border:1px solid var(--border); color:var(--muted); padding:6px 12px; border-radius:6px; font-family:'Space Mono',monospace; font-size:0.6rem; cursor:pointer; transition:all 0.2s; letter-spacing:0.05em; -webkit-appearance:none; }
+  .export-btn:active { border-color:var(--accent); color:var(--accent); }
+  .history-empty { padding:36px 16px; text-align:center; color:var(--muted); font-size:0.75rem; }
+
+  .day-group { border-bottom:1px solid var(--border); }
+  .day-group:last-child { border-bottom:none; }
+  .day-header { display:flex; justify-content:space-between; align-items:center; padding:11px 16px; background:var(--surface2); cursor:pointer; user-select:none; }
+  .day-date { font-size:0.7rem; color:var(--muted); letter-spacing:0.03em; }
+  .day-total { font-size:0.7rem; color:var(--accent); font-weight:700; }
+  .day-chevron { color:var(--muted); font-size:0.65rem; transition:transform 0.2s; margin-left:10px; }
+  .day-chevron.open { transform:rotate(180deg); }
+  .sessions-list { display:none; }
+  .sessions-list.open { display:block; }
+
+  .session-row { display:grid; grid-template-columns:1fr auto auto; align-items:start; gap:8px; padding:12px 16px; border-top:1px solid var(--border); }
+  .session-times { font-size:0.7rem; }
+  .session-time-range { color:var(--text); margin-bottom:4px; }
+  .session-note-display { color:var(--muted); font-size:0.65rem; font-style:italic; cursor:pointer; display:flex; align-items:center; gap:5px; margin-top:4px; }
+  .session-note-display:active { color:var(--accent); }
+  .note-edit-wrap { margin-top:6px; display:none; }
+  .note-edit-wrap.open { display:flex; gap:6px; align-items:center; }
+  .note-edit-input { flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:7px 8px; color:var(--text); font-family:'Space Mono',monospace; font-size:0.65rem; outline:none; min-width:0; }
+  .note-edit-input:focus { border-color:var(--accent); }
+  .note-save-btn { background:var(--accent); border:none; border-radius:6px; color:var(--bg); font-family:'Syne',sans-serif; font-weight:700; font-size:0.65rem; padding:7px 10px; cursor:pointer; white-space:nowrap; }
+  .session-duration { color:var(--success); font-weight:700; font-size:0.7rem; white-space:nowrap; padding-top:2px; }
+  .session-delete { background:none; border:none; color:var(--muted); cursor:pointer; font-size:1rem; padding:2px 4px; transition:color 0.2s; -webkit-appearance:none; }
+  .session-delete:active { color:var(--danger); }
+
+  /* RESET */
+  .reset-section { margin-top:12px; text-align:center; }
+  .reset-btn { background:none; border:1px solid var(--border); color:var(--muted); padding:8px 18px; border-radius:6px; font-family:'Space Mono',monospace; font-size:0.6rem; cursor:pointer; transition:all 0.2s; -webkit-appearance:none; }
+  .reset-btn:active { border-color:var(--danger); color:var(--danger); }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:var(--surface2); border:1px solid var(--border); padding:12px 18px; border-radius:8px; font-size:0.72rem; color:var(--text); transition:transform 0.3s; z-index:100; white-space:nowrap; }
+  .toast.show { transform:translateX(-50%) translateY(0); }
+
+  /* MODAL */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity 0.2s; }
+  .modal-overlay.show { opacity:1; pointer-events:all; }
+  .modal { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:24px 20px; max-width:320px; width:100%; }
+  .modal-title { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; margin-bottom:8px; }
+  .modal-msg { font-size:0.72rem; color:var(--muted); line-height:1.6; margin-bottom:20px; }
+  .modal-btns { display:flex; gap:10px; }
+  .modal-cancel { flex:1; background:none; border:1px solid var(--border); color:var(--muted); padding:12px; border-radius:8px; font-family:'Space Mono',monospace; font-size:0.72rem; cursor:pointer; }
+  .modal-confirm { flex:1; background:var(--danger); border:none; color:#fff; padding:12px; border-radius:8px; font-family:'Syne',sans-serif; font-weight:700; font-size:0.72rem; cursor:pointer; }
+
+  @media (max-width:360px) { .timer-display { font-size:3.2rem; } .hours-display { font-size:2rem; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">FICHA<span>.</span>PRO</div>
+    <div class="badge">500 h</div>
+  </header>
+
+  <div class="progress-section">
+    <div class="progress-header">
+      <div>
+        <div class="hours-display"><span class="remaining" id="hoursRemaining">500h 00m</span></div>
+        <div style="font-size:0.65rem;color:var(--muted);margin-top:4px;">restantes de <strong style="color:var(--text)">500 h</strong></div>
+      </div>
+      <div class="pct-badge">
+        <span class="pct-num" id="pctDone">0%</span>completado
+      </div>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+    <div class="sub-stats">
+      <div class="stat"><strong id="hoursLogged">0h 00m</strong>fichadas</div>
+      <div class="stat"><strong id="sessionCount">0</strong>sesiones</div>
+      <div class="stat"><strong id="daysWorked">0</strong>días</div>
+    </div>
+  </div>
+
+  <div class="timer-section">
+    <div class="status-row">
+      <div class="status-dot" id="statusDot"></div>
+      <span class="status-label" id="statusLabel">ESPERANDO ENTRADA</span>
+    </div>
+    <div class="timer-display" id="timerDisplay">00:00:00</div>
+    <div class="pause-accum" id="pauseAccum"></div>
+    <div class="btn-row">
+      <button class="punch-btn" id="punchBtn" onclick="toggleSession()">
+        <span class="icon" id="punchIcon">▶</span>
+        <span id="punchLabel">FICHAR ENTRADA</span>
+      </button>
+      <button class="pause-btn hidden" id="pauseBtn" onclick="togglePause()">
+        <span id="pauseIcon">⏸</span>
+        <span id="pauseLabel">PAUSA</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="history-section">
+    <div class="history-header">
+      <div class="history-title">REGISTRO</div>
+      <button class="export-btn" onclick="exportCSV()">↓ EXPORTAR CSV</button>
+    </div>
+    <div id="historyContainer"><div class="history-empty">Aún no hay sesiones registradas</div></div>
+  </div>
+
+  <div class="reset-section">
+    <button class="reset-btn" onclick="resetAll()">⚠ Reiniciar todo el registro</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-msg" id="modalMsg"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="modalResolve(false)">Cancelar</button>
+      <button class="modal-confirm" id="modalConfirmBtn" onclick="modalResolve(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL_SECONDS = 500 * 3600;
+let sessions = [];
+let activeStart = null;
+let pausedAt = null;
+let pausedAccum = 0;
+let timerInterval = null;
+
+async function loadData() {
+  try { const r = await window.storage.get('sessions'); if(r) sessions = JSON.parse(r.value); } catch(e){}
+  try {
+    const r = await window.storage.get('state');
+    if(r) {
+      const s = JSON.parse(r.value);
+      activeStart = s.activeStart || null;
+      pausedAt = s.pausedAt || null;
+      pausedAccum = s.pausedAccum || 0;
+      if(activeStart) { pausedAt ? applyPausedUI() : startTimerUI(); }
+    }
+  } catch(e){}
+  renderAll();
+}
+
+async function saveState() { await window.storage.set('state', JSON.stringify({activeStart, pausedAt, pausedAccum})); }
+async function saveData() { await window.storage.set('sessions', JSON.stringify(sessions)); }
+
+function toggleSession() {
+  if (!activeStart) {
+    activeStart = Date.now(); pausedAccum = 0; pausedAt = null;
+    saveState(); startTimerUI(); showToast('✓ Entrada fichada');
+  } else {
+    if (pausedAt) { pausedAccum += Math.floor((Date.now() - pausedAt) / 1000); pausedAt = null; }
+    const total = Math.floor((Date.now() - activeStart) / 1000);
+    const duration = Math.max(0, total - pausedAccum);
+    sessions.push({id: Date.now(), start: activeStart, end: Date.now(), duration, note: ''});
+    activeStart = null; pausedAccum = 0; pausedAt = null;
+    saveState(); saveData(); stopTimerUI(); renderAll();
+    showToast('✓ Salida fichada — ' + fmt(duration));
+  }
+}
+
+function togglePause() {
+  if (!activeStart) return;
+  if (!pausedAt) {
+    pausedAt = Date.now(); saveState(); applyPausedUI(); showToast('⏸ Pausado');
+  } else {
+    pausedAccum += Math.floor((Date.now() - pausedAt) / 1000);
+    pausedAt = null; saveState(); startTimerUI(); showToast('▶ Reanudado');
+  }
+}
+
+function startTimerUI() {
+  clearInterval(timerInterval);
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot active';
+  document.getElementById('statusLabel').textContent = 'EN CURSO';
+  document.getElementById('punchBtn').classList.add('running');
+  document.getElementById('punchLabel').textContent = 'FICHAR SALIDA';
+  document.getElementById('punchIcon').textContent = '⏹';
+  const d = document.getElementById('timerDisplay');
+  d.className = 'timer-display running';
+  document.getElementById('pauseBtn').classList.remove('hidden');
+  document.getElementById('pauseIcon').textContent = '⏸';
+  document.getElementById('pauseLabel').textContent = 'PAUSA';
+  timerInterval = setInterval(tick, 1000); tick();
+}
+
+function applyPausedUI() {
+  clearInterval(timerInterval);
+  document.getElementById('statusDot').className = 'status-dot paused';
+  document.getElementById('statusLabel').textContent = 'EN PAUSA';
+  document.getElementById('punchBtn').classList.add('running');
+  document.getElementById('punchLabel').textContent = 'FICHAR SALIDA';
+  document.getElementById('punchIcon').textContent = '⏹';
+  const d = document.getElementById('timerDisplay');
+  d.className = 'timer-display paused';
+  if (pausedAt && activeStart) {
+    const net = Math.max(0, Math.floor((pausedAt - activeStart) / 1000) - pausedAccum);
+    d.textContent = fmtTime(net);
+  }
+  document.getElementById('pauseBtn').classList.remove('hidden');
+  document.getElementById('pauseIcon').textContent = '▶';
+  document.getElementById('pauseLabel').textContent = 'REANUDAR';
+  updatePauseLabel();
+}
+
+function stopTimerUI() {
+  clearInterval(timerInterval); timerInterval = null;
+  document.getElementById('statusDot').className = 'status-dot';
+  document.getElementById('statusLabel').textContent = 'ESPERANDO ENTRADA';
+  document.getElementById('punchBtn').classList.remove('running');
+  document.getElementById('punchLabel').textContent = 'FICHAR ENTRADA';
+  document.getElementById('punchIcon').textContent = '▶';
+  document.getElementById('timerDisplay').className = 'timer-display';
+  document.getElementById('timerDisplay').textContent = '00:00:00';
+  document.getElementById('pauseBtn').classList.add('hidden');
+  document.getElementById('pauseAccum').textContent = '';
+}
+
+function tick() {
+  if (!activeStart || pausedAt) return;
+  const net = Math.max(0, Math.floor((Date.now() - activeStart) / 1000) - pausedAccum);
+  document.getElementById('timerDisplay').textContent = fmtTime(net);
+  updatePauseLabel();
+}
+
+function updatePauseLabel() {
+  const total = pausedAccum + (pausedAt ? Math.floor((Date.now() - pausedAt) / 1000) : 0);
+  document.getElementById('pauseAccum').textContent = total > 0 ? 'Pausa acumulada: ' + fmt(total) : '';
+}
+
+function renderAll() {
+  const logged = sessions.reduce((a,s)=>a+s.duration,0);
+  const remaining = Math.max(0, TOTAL_SECONDS - logged);
+  const pct = Math.min(100, logged / TOTAL_SECONDS * 100).toFixed(1);
+  const days = new Set(sessions.map(s=>new Date(s.start).toDateString())).size;
+  document.getElementById('hoursRemaining').textContent = fmtH(remaining);
+  document.getElementById('pctDone').textContent = pct + '%';
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('hoursLogged').textContent = fmtH(logged);
+  document.getElementById('sessionCount').textContent = sessions.length;
+  document.getElementById('daysWorked').textContent = days;
+
+  const container = document.getElementById('historyContainer');
+  if (!sessions.length) { container.innerHTML = '<div class="history-empty">Aún no hay sesiones registradas</div>'; return; }
+
+  const groups = {};
+  [...sessions].reverse().forEach(s => {
+    const d = new Date(s.start).toLocaleDateString('es-ES',{weekday:'long',month:'short',day:'numeric'});
+    if(!groups[d]) groups[d]=[];
+    groups[d].push(s);
+  });
+
+  container.innerHTML = Object.entries(groups).map(([date, sess], gi) => {
+    const dayTotal = sess.reduce((a,s)=>a+s.duration,0);
+    const gid = 'day'+gi;
+    const rows = sess.map(s => {
+      const nl = s.note ? `"${s.note}"` : '✎ añadir nota';
+      return `<div class="session-row">
+        <div class="session-times">
+          <div class="session-time-range">${fmtClock(s.start)} → ${fmtClock(s.end)}</div>
+          <div class="session-note-display" onclick="openNote(${s.id})" id="nd${s.id}">${nl}</div>
+          <div class="note-edit-wrap" id="ne${s.id}">
+            <input class="note-edit-input" id="ni${s.id}" type="text" maxlength="120" placeholder="Escribe una nota..." value="${s.note||''}" onkeydown="if(event.key==='Enter')saveNote(${s.id})">
+            <button class="note-save-btn" onclick="saveNote(${s.id})">OK</button>
+          </div>
+        </div>
+        <div class="session-duration">+${fmt(s.duration)}</div>
+        <button class="session-delete" onclick="delSession(${s.id})">✕</button>
+      </div>`;
+    }).join('');
+    return `<div class="day-group">
+      <div class="day-header" onclick="toggleDay('${gid}')">
+        <div class="day-date">${date}</div>
+        <div style="display:flex;align-items:center"><div class="day-total">${fmt(dayTotal)}</div><div class="day-chevron open" id="ch${gid}">▼</div></div>
+      </div>
+      <div class="sessions-list open" id="${gid}">${rows}</div>
+    </div>`;
+  }).join('');
+}
+
+function openNote(id) {
+  document.querySelectorAll('.note-edit-wrap.open').forEach(e=>e.classList.remove('open'));
+  const wrap = document.getElementById('ne'+id);
+  wrap.classList.add('open');
+  document.getElementById('ni'+id).focus();
+}
+
+function saveNote(id) {
+  const val = document.getElementById('ni'+id).value.trim();
+  const s = sessions.find(s=>s.id===id);
+  if(s){s.note=val; saveData();}
+  document.getElementById('ne'+id).classList.remove('open');
+  document.getElementById('nd'+id).textContent = val ? `"${val}"` : '✎ añadir nota';
+  showToast('✓ Nota guardada');
+}
+
+function toggleDay(id) {
+  document.getElementById(id).classList.toggle('open');
+  document.getElementById('ch'+id).classList.toggle('open');
+}
+
+let _modalResolve = null;
+function showModal(title, msg, confirmText) {
+  return new Promise(res => {
+    _modalResolve = res;
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalMsg').textContent = msg;
+    document.getElementById('modalConfirmBtn').textContent = confirmText;
+    document.getElementById('modalOverlay').classList.add('show');
+  });
+}
+function modalResolve(val) {
+  document.getElementById('modalOverlay').classList.remove('show');
+  if (_modalResolve) { _modalResolve(val); _modalResolve = null; }
+}
+
+async function delSession(id) {
+  const ok = await showModal('Eliminar sesión', '¿Seguro que quieres eliminar esta sesión? No se puede deshacer.', 'Eliminar');
+  if (!ok) return;
+  sessions = sessions.filter(s=>s.id!==id);
+  saveData(); renderAll(); showToast('Sesión eliminada');
+}
+
+function exportCSV() {
+  if(!sessions.length){showToast('No hay datos para exportar');return;}
+  const rows=[['Fecha','Entrada','Salida','Duración (min)','Notas']];
+  sessions.forEach(s=>rows.push([new Date(s.start).toLocaleDateString('es-ES'),fmtClock(s.start),fmtClock(s.end),Math.round(s.duration/60),s.note||'']));
+  const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+  a.download='fichaje_practicas.csv'; a.click();
+  showToast('✓ CSV descargado');
+}
+
+async function resetAll() {
+  const ok = await showModal('⚠ Reiniciar registro', '¿Borrar TODO el registro de horas? Esta acción no se puede deshacer.', 'Sí, borrar todo');
+  if (!ok) return;
+  sessions=[]; activeStart=null; pausedAt=null; pausedAccum=0;
+  try{await window.storage.delete('sessions');}catch(e){}
+  try{await window.storage.delete('state');}catch(e){}
+  stopTimerUI(); renderAll(); showToast('Registro reiniciado');
+}
+
+function fmtTime(s){return[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(n=>String(n).padStart(2,'0')).join(':');}
+function fmt(s){const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h>0?`${h}h ${m}m`:`${m}m`;}
+function fmtH(s){return`${Math.floor(s/3600)}h ${String(Math.floor((s%3600)/60)).padStart(2,'0')}m`;}
+function fmtClock(ts){return new Date(ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+
+loadData();
+</script>
+</body>
+</html>
