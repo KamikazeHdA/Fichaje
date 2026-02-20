@@ -241,12 +241,12 @@ let pausedAt = null;
 let pausedAccum = 0;
 let timerInterval = null;
 
-async function loadData() {
-  try { const r = await window.storage.get('sessions'); if(r) sessions = JSON.parse(r.value); } catch(e){}
+function loadData() {
+  try { const r = localStorage.getItem('sessions'); if(r) sessions = JSON.parse(r); } catch(e){}
   try {
-    const r = await window.storage.get('state');
+    const r = localStorage.getItem('state');
     if(r) {
-      const s = JSON.parse(r.value);
+      const s = JSON.parse(r);
       activeStart = s.activeStart || null;
       pausedAt = s.pausedAt || null;
       pausedAccum = s.pausedAccum || 0;
@@ -256,8 +256,8 @@ async function loadData() {
   renderAll();
 }
 
-async function saveState() { await window.storage.set('state', JSON.stringify({activeStart, pausedAt, pausedAccum})); }
-async function saveData() { await window.storage.set('sessions', JSON.stringify(sessions)); }
+function saveState() { localStorage.setItem('state', JSON.stringify({activeStart, pausedAt, pausedAccum})); }
+function saveData() { localStorage.setItem('sessions', JSON.stringify(sessions)); }
 
 function toggleSession() {
   if (!activeStart) {
@@ -452,8 +452,8 @@ async function resetAll() {
   const ok = await showModal('⚠ Reiniciar registro', '¿Borrar TODO el registro de horas? Esta acción no se puede deshacer.', 'Sí, borrar todo');
   if (!ok) return;
   sessions=[]; activeStart=null; pausedAt=null; pausedAccum=0;
-  try{await window.storage.delete('sessions');}catch(e){}
-  try{await window.storage.delete('state');}catch(e){}
+  try{localStorage.removeItem('sessions');}catch(e){}
+  try{localStorage.removeItem('state');}catch(e){}
   stopTimerUI(); renderAll(); showToast('Registro reiniciado');
 }
 
